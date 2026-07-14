@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>한국어 ↔ 외국어 발음·뜻 변환기</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>한국어 ↔ 외국어 변환기</h1>
+      <p class="subtitle">외국어를 넣으면 <b>한국 발음 / 한국어 뜻</b>으로, 한국어를 넣으면 <b>로마자 발음 / 외국어 뜻</b>으로 바꿔 줍니다. 단어도, 문장도 OK!</p>
+    </header>
+
+    <section class="card">
+      <div class="field">
+        <label class="label">언어 선택</label>
+        <div class="lang-buttons" id="langButtons">
+          <button type="button" class="lang-btn active" data-lang="en">영어</button>
+          <button type="button" class="lang-btn" data-lang="ceb">비사야어 (세부아노)</button>
+          <button type="button" class="lang-btn" data-lang="tl">따갈로그어</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="inputText">
+          입력
+          <span class="direction-badge" id="directionBadge">영어 → 한국어</span>
+        </label>
+        <textarea id="inputText" rows="3" placeholder="예) tree  또는  나무&#10;문장도 입력할 수 있어요."></textarea>
+      </div>
+
+      <div class="examples" id="examples"></div>
+
+      <button type="button" class="convert-btn" id="convertBtn">변환하기</button>
+      <p class="hint">Ctrl(⌘)+Enter 로도 변환할 수 있어요. 한글이 들어 있으면 자동으로 한국어 → 외국어 방향으로 바뀝니다.</p>
+    </section>
+
+    <section class="card result-card hidden" id="resultCard">
+      <div class="result-main">
+        <span id="resultLine"></span>
+        <button type="button" class="copy-btn" id="copyBtn" title="복사">복사</button>
+      </div>
+      <div class="result-rows">
+        <div class="result-row">
+          <span class="result-key" id="pronLabel">발음</span>
+          <span class="result-val" id="pronValue"></span>
+          <button type="button" class="speak-btn" id="speakPronBtn" title="발음 듣기">🔊 듣기</button>
+        </div>
+        <div class="result-row">
+          <span class="result-key" id="meaningLabel">뜻</span>
+          <span class="result-val" id="meaningValue"></span>
+          <button type="button" class="speak-btn" id="speakMeaningBtn" title="뜻 듣기">🔊 듣기</button>
+        </div>
+      </div>
+      <p class="note" id="resultNote"></p>
+    </section>
+
+    <footer class="footer">
+      <p>발음 표기는 규칙 기반 근사치라 실제 발음과 조금 다를 수 있어요. 뜻(번역)은 무료 번역 서비스를 사용하므로 인터넷 연결이 필요합니다.</p>
+    </footer>
+  </main>
+
+  <script src="translit.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
