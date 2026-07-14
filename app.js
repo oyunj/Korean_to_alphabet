@@ -2,10 +2,11 @@
 (function () {
   'use strict';
 
+  // tts: 브라우저 음성 합성에 쓸 언어 태그 (비사야어는 전용 음성이 없어 필리핀어 음성으로 대체)
   var LANGS = {
-    en: { name: '영어', code: 'en' },
-    ceb: { name: '비사야어', code: 'ceb' },
-    tl: { name: '따갈로그어', code: 'tl' },
+    en: { name: '영어', code: 'en', tts: 'en-US' },
+    ceb: { name: '비사야어', code: 'ceb', tts: 'fil-PH' },
+    tl: { name: '따갈로그어', code: 'tl', tts: 'fil-PH' },
   };
 
   var EXAMPLES = {
@@ -29,6 +30,8 @@
   var $meaningLabel = document.getElementById('meaningLabel');
   var $meaning = document.getElementById('meaningValue');
   var $note = document.getElementById('resultNote');
+  var $speakPron = document.getElementById('speakPronBtn');
+  var $speakMeaning = document.getElementById('speakMeaningBtn');
 
   /* ---------------- 방향 감지 ---------------- */
 
@@ -40,6 +43,60 @@
     var name = LANGS[currentLang].name;
     $badge.textContent = hasHangul($input.value) ? '한국어 → ' + name : name + ' → 한국어';
   }
+
+  /* ---------------- 음성 (Web Speech API) ---------------- */
+
+  var speech = window.speechSynthesis || null;
+  var voices = [];
+
+  function loadVoices() {
+    if (speech) voices = speech.getVoices();
+  }
+  if (speech) {
+    loadVoices();
+    if (typeof speech.onvoiceschanged !== 'undefined') speech.onvoiceschanged = loadVoices;
+  } else {
+    // 음성 합성을 지원하지 않는 브라우저에서는 듣기 버튼 숨김
+    $speakPron.style.display = 'none';
+    $speakMeaning.style.display = 'none';
+  }
+
+  function pickVoice(lang) {
+    var norm = function (l) { return (l || '').replace('_', '-').toLowerCase(); };
+    var target = norm(lang);
+    var prefix = target.split('-')[0];
+    var exact = null, partial = null;
+    for (var i = 0; i < voices.length; i++) {
+      var vl = norm(voices[i].lang);
+      if (!exact && vl === target) exact = voices[i];
+      if (!partial && vl.indexOf(prefix) === 0) partial = voices[i];
+    }
+    return exact || partial || null;
+  }
+
+  // 재생할 내용: 변환할 때마다 채워짐
+  var speakData = { pron: null, pronLang: null, meaning: null, meaningLang: null };
+
+  function speak(text, lang, btn) {
+    if (!speech || !text) return;
+    speech.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = lang;
+    var v = pickVoice(lang);
+    if (v) u.voice = v;
+    u.rate = 0.95;
+    u.onstart = function () { btn.classList.add('speaking'); };
+    u.onend = function () { btn.classList.remove('speaking'); };
+    u.onerror = function () { btn.classList.remove('speaking'); };
+    speech.speak(u);
+  }
+
+  $speakPron.addEventListener('click', function () {
+    speak(speakData.pron, speakData.pronLang, $speakPron);
+  });
+  $speakMeaning.addEventListener('click', function () {
+    speak(speakData.meaning, speakData.meaningLang, $speakMeaning);
+  });
 
   /* ---------------- 번역 API ---------------- */
 
@@ -89,12 +146,23 @@
       pron = Translit.transliterateToHangul(text, currentLang === 'en' ? 'en' : 'fil');
       $pronLabel.textContent = '한국 발음';
       $meaningLabel.textContent = '한국어 뜻';
+      // 한글 발음 표기를 한국어 음성으로 읽어줌
+      speakData.pron = pron;
+      speakData.pronLang = 'ko-KR';
+      speakData.meaningLang = 'ko-KR';
     } else {
       // 한국어 → 로마자 발음
       pron = Translit.romanizeKorean(text);
       $pronLabel.textContent = '로마자 발음';
       $meaningLabel.textContent = lang.name + ' 뜻';
+      // 로마자 표기 대신 원래 한국어를 읽어야 실제 발음이 남
+      speakData.pron = text;
+      speakData.pronLang = 'ko-KR';
+      speakData.meaningLang = lang.tts;
     }
+    speakData.meaning = null;
+    $speakPron.disabled = false;
+    $speakMeaning.disabled = true;
 
     $card.classList.remove('hidden');
     $pron.textContent = pron;
@@ -111,6 +179,8 @@
     translateText(text, sl, tl).then(function (meaning) {
       $meaning.textContent = meaning;
       $line.textContent = pron + '/' + meaning;
+      speakData.meaning = meaning;
+      $speakMeaning.disabled = false;
     }).catch(function () {
       $meaning.textContent = '(번역 서비스에 연결하지 못했어요)';
       $line.textContent = pron;
